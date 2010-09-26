@@ -120,7 +120,11 @@ foreach ($folders as $folder)
 	check_error($conn, $conn !== false, "Unable to connect to $server:$port as $name.", 7);
 
 	$messages = imap_search($conn, 'ALL', SE_UID);
-	check_error($conn, is_array($messages), "Error retrieving list of messages in folder: $folder_name.", 8);
+	if (!is_array($messages))
+	{
+		fputs(STDERR, "\nError retrieving list of messages in folder: $folder_name. SKIPPED\n" . imap_last_error() . "\n");
+		continue;
+	}
 
 	$all = count($messages);
 	$current = 0;

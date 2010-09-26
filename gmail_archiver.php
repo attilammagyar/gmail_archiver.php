@@ -81,7 +81,7 @@ check_error($conn, $conn !== false, "Unable to connect to $server:$port as $name
 
 echo "OK\n";
 
-echo "Fetchink list of folders... ";
+echo "Fetching list of folders... ";
 
 $folders = imap_list($conn, $ref, "*");
 check_error($conn, is_array($folders), 'Error retrieving list of IMAP folders.', 4);

@@ -90,10 +90,9 @@ echo "OK\n";
 
 imap_close($conn);
 
-echo "Creating directory: $name... ";
-
 if (!is_dir("./$name"))
 {
+	echo "Creating directory: $name...\n";
 	$mkdir = mkdir("./$name", 0700);
 	check_error(NULL, $mkdir !== false, "Error creating directory: ./$name.", 5);
 }
@@ -138,7 +137,7 @@ foreach ($folders as $folder)
 		{
 			$last_percent = $percent;
 			echo str_repeat("\x08", strlen($status));
-			$status = "$percent% ($bytes bytes downloaded, folders: $current_folder/$folder_count)";
+			$status = "$percent% ($bytes bytes downloaded, folders: $current_folder/$folder_count)    ";
 			echo "$status";
 		}
 

@@ -6,7 +6,7 @@
  * To Public License, Version 2, as published by Sam Hocevar. See
  * http://sam.zoy.org/wtfpl/COPYING for more details. */
 
-ini_set('memory_limit', '128M');
+ini_set('memory_limit', '512M');
 set_time_limit(0);
 
 function lbtrim($str)
@@ -14,9 +14,9 @@ function lbtrim($str)
 	return trim($str, "\r\n");
 }
 
-function check_error($conn, $check_errorion, $message, $code)
+function check_error($conn, $condition, $message, $code)
 {
-	if (!$check_errorion)
+	if (!$condition)
 	{
 		fputs(STDERR, "\n$message\n" . imap_last_error() . "\n");
 		if ($conn)
@@ -141,13 +141,20 @@ foreach ($folders as $folder)
 			echo "$status";
 		}
 
-		$msgfile = "./$name/$folder_name/$uid.txt";
+		$msgfile = "./$name/$folder_name/$uid.txt.gz";
 		if (!file_exists($msgfile))
 		{
 			$msg = imap_fetchbody($conn, $uid, '', FT_UID | FT_PEEK);
-			$written = file_put_contents($msgfile, $msg);
+			$to_be_written = gzencode($msg, 9);
+			if ($to_be_written === false)
+			{
+				fputs(STDERR, "\nError compressing message, writing plaintext: $uid\n");
+				$to_be_written = $msg;
+				$msgfile = "./$name/$folder_name/$uid.txt";
+			}
+			$written = file_put_contents($msgfile, $to_be_written);
 			check_error($conn, $written !== false, "Error writing file: $msgfile.", 9);
-			$bytes += $written;
+			$bytes += strlen($msg);
 		}
 	}
 	echo "\nAll mail from $folder_name has been downloaded.\n";

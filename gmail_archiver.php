@@ -29,11 +29,11 @@ $argc = count($argv);
 
 if ($argc > 1 && $argv[1] == 'help')
 {
-	echo "Usage: php ${argv[0]} [IMAP server [port [account name [password]]]]\n";
+	echo "Usage: php ${argv[0]} [IMAP server [port [query [account name [password]]]]]\n";
 	exit(1);
 }
 
-$server = $port = $name = $password = '';
+$server = $port = $query = $name = $password = '';
 
 if ($argc < 2)
 {
@@ -53,15 +53,26 @@ else
 
 check_error(NULL, $port > 0 && $port < 65536, "Invalid port number: $port.", 2);
 
-if ($argc < 4)
+if ($argc < 4) {
+    echo 'Query (e.g. ALL or ALL SINCE 15-Jan-2021): ';
+    $query = lbtrim(fgets(STDIN));
+} else {
+    $query = lbtrim($argv[3]);
+}
+
+if (!$query) {
+    $query = 'ALL';
+}
+
+if ($argc < 5)
 {
 	echo 'Account name: ';
 	$name = lbtrim(fgets(STDIN));
 }
 else
-	$name = lbtrim($argv[3]);
+	$name = lbtrim($argv[4]);
 
-if ($argc < 5)
+if ($argc < 6)
 {
 	echo 'Password: ';
 	system('stty -echo');
@@ -70,7 +81,7 @@ if ($argc < 5)
 	echo "\n";
 }
 else
-	$password = lbtrim($argv[4]);
+	$password = lbtrim($argv[5]);
 
 echo "Connecting to $server:$port as $name... ";
 
@@ -118,7 +129,7 @@ foreach ($folders as $folder)
 	$conn = imap_open($folder, $name, $password);
 	check_error($conn, $conn !== false, "Unable to connect to $server:$port as $name.", 7);
 
-	$messages = imap_search($conn, 'ALL', SE_UID);
+	$messages = imap_search($conn, $query, SE_UID);
 	if (!is_array($messages))
 	{
 		fputs(STDERR, "\nError retrieving list of messages in folder: $folder_name. SKIPPED\n" . imap_last_error() . "\n");
@@ -131,6 +142,7 @@ foreach ($folders as $folder)
 	$last_percent = -1;
 	foreach ($messages as $uid)
 	{
+		$prefix = substr($uid, 0, 2);
 		++$current;
 		$percent = ((int)round(($current / $all) * 10000)) / 100;
 		if ($percent != $last_percent)
@@ -141,7 +153,14 @@ foreach ($folders as $folder)
 			echo "$status";
 		}
 
-		$msgfile = "./$name/$folder_name/$uid.txt.gz";
+		$msg_base_dir = "./$name/$folder_name/$prefix";
+		if (!is_dir($msg_base_dir))
+		{
+			$mkdir = mkdir($msg_base_dir, 0700, true);
+			check_error(NULL, $mkdir !== false, "Error creating directory: $msg_base_dir.", 10);
+		}
+
+		$msgfile = "$msg_base_dir/$uid.txt.gz";
 		if (!file_exists($msgfile))
 		{
 			$msg = imap_fetchbody($conn, $uid, '', FT_UID | FT_PEEK);
